@@ -71,9 +71,10 @@ Plant.getUserPlantList = async (userTelegramId) => {
 
     // Insert the new plant into the database
     const [createResult] = await connection.query(createQuery, [userTelegramId]);
+    console.log(createResult)
     return { result: createResult, error: null };
-
   } catch (err) {
+    console.log(err)
     return { result: null, error: err };
   } finally {
     if (connection) connection.release();
