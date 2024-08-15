@@ -48,7 +48,13 @@ Promtion.getPurchasedPromotion = async (id, pageIndex) => {
                                 WHERE
                                   user_id = ? 
                                 GROUP BY
-                                  tbl_promotion.id 
+                                  tbl_promotion.id, 
+                                  tbl_promotion.title,
+                                  tbl_promotion.description,
+                                  tbl_promotion.expired_date,
+                                  u_gold.NAME,
+                                  u_silver.NAME,
+                                  u_bronze.NAME
                                 ORDER BY
                                   tbl_promotion.expired_date 
                                   LIMIT 10 OFFSET ?`;
