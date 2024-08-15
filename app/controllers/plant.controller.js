@@ -43,6 +43,7 @@ exports.seedNewPlant = async (req, res) => {
   const purchaseResult = await User.purchasePlant(userTelegramId, req.body.plantId, req.body.landPosition);
 
   if(purchaseResult.error) {
+    console.log(purchaseResult)
     res.send({
       message: purchaseResult.result,
       success: false
@@ -50,6 +51,7 @@ exports.seedNewPlant = async (req, res) => {
   } else {
     const result = await Plant.seedNewPlant(newPlantList);
     if(result.error) {
+      console.log(result)
       res.send({
         message: result.error,
         success: false
