@@ -25,6 +25,14 @@ exports.getUserPlantList = async (req, res) => {
  * @param {message, success} res 
  */
 exports.seedNewPlant = async (req, res) => {
+  if(req.body.plantId == null || req.body.landPosition == null) {
+    res.send({
+      message: "some field is required",
+      success: false
+    })
+    return;
+  }
+
   const userTelegramId = req.body.id;
   const newPlantList = {
     user_id: userTelegramId,
