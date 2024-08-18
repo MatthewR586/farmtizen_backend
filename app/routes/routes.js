@@ -5,6 +5,9 @@ module.exports = (app) => {
   const admin = require("../controllers/admin.controller.js");
   const plantController = require("../controllers/plant.controller.js");
   const promotionController = require("../controllers/promotion.controller.js");
+  const spinController = require("../controllers/spin.controller.js");
+
+
   const multer = require("multer");
   const path = require("path");
   const { v4: uuidv4 } = require("uuid");
@@ -31,7 +34,8 @@ module.exports = (app) => {
   router.post("/steal", users.stealFriend);
   router.post("/register", users.register);
   router.post("/login", users.login);
-  
+  router.post("/upgrade-level", users.upgradeLevelUpToken)
+  router.get("/level", users.getCurrentLevel)
   //crypto management
   router.get("/trx/:id", crypto.getTrx);
   router.get("/bnb/:id", crypto.getBnb);
@@ -61,8 +65,6 @@ module.exports = (app) => {
   router.put("/plants", plantController.harvestPlant); //harvest user's selected plant
   // router.post("/purchase", plantController.purchaseNewPlant); //purchase new plant
 
-  // steal
-  // router.get("/steal", users.steal);
 
   // promotion management
   router.get("/promotion", promotionController.getPromotion); // get active promotion list
@@ -73,6 +75,10 @@ module.exports = (app) => {
   router.post("/ticket", promotionController.buyNewTicket); // buy promtion
   router.get("/ticket", promotionController.getTicket);
 
+  //spin management
+  router.post("/spin", spinController.addnewSpin);
+  router.get("/spin", spinController.getSpinList)
+  router.post("/spinner-list", spinController.addNewSpinList)
 
   //admin management
   router.put('/admin/:id', admin.update);

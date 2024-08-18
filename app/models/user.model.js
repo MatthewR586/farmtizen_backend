@@ -86,17 +86,24 @@ User.auth = async (user, referral_id) => {
   try {
     connection = await pool.getConnection();
     const loginQuery = `SELECT
-                          *,
-                          ( SELECT COUNT( * ) FROM tbl_user WHERE referral_id = ? ) AS referral_counts 
+                          u.*,
+                          (SELECT COUNT(*) FROM tbl_user WHERE referral_id = ?) AS referral_counts,
+                          l.level,
+                          l.unlock_count
                         FROM
-                          tbl_user u
+                            tbl_user u
+                        JOIN
+                            tbl_level l ON u.xp >= l.xp
                         WHERE
-                          telegram_id = ?
-                        `;
+                            u.telegram_id = ?
+                        ORDER BY
+                            l.xp DESC
+                        LIMIT 1;
+                          `;
     const [res] = await connection.query(loginQuery, [user.id, user.id]);
 
     if (res.length) {
-      return {error: null, result: {...res[0], exist: true}};
+      return { error: null, result: { ...res[0], exist: true } };
     } else {
       const newUser = new User({ ...user, referral_id });
 
@@ -104,10 +111,10 @@ User.auth = async (user, referral_id) => {
       const [insertRes] = await connection.query(insertQuery, newUser);
 
       const [newUserRes] = await connection.query(loginQuery, [insertRes.insertId, insertRes.insertId]);
-      return {error: null, result: {...newUserRes[0], exist: false}};
+      return { error: null, result: { ...newUserRes[0], exist: false } };
     }
   } catch (err) {
-    return {error: err, result: null};
+    return { error: err, result: null };
   } finally {
     if (connection) connection.release();
   }
@@ -236,9 +243,9 @@ User.getTotalReferral = async (telegram_id) => {
     connection = await pool.getConnection();
     const query = `select count(*) as total_referral from tbl_user where referral_id = ?`;
     const [res] = await connection.query(query, [telegram_id]);
-    return {result: res[0], error: null}    
+    return { result: res[0], error: null }
   } catch (error) {
-    return {result: null, error}
+    return { result: null, error }
   }
 
 }
@@ -250,21 +257,21 @@ User.updateTrxById = async (userTelegramId, approvedTrx) => {
     connection = await pool.getConnection();
     const getQuery = `SELECT trx FROM tbl_user WHERE telegram_id = ?`;
     const [res] = await connection.query(getQuery, [userTelegramId]);
-    console.log("---------------------",res.length)
+    console.log("---------------------", res.length)
     if (res.length > 0) {
       const query = `UPDATE tbl_user SET trx = ? WHERE telegram_id = ?`;
       const updatedTrx = new BN(res[0].trx).sub(new BN(approvedTrx)).toString();
-      console.log("---------------------",updatedTrx)
+      console.log("---------------------", updatedTrx)
       const [updateRes] = await connection.query(query, [
         updatedTrx,
         userTelegramId,
       ]);
-      return {error: null, res: updateRes};
+      return { error: null, res: updateRes };
     } else {
-      return {error: new Error("User not found"), res: null};
+      return { error: new Error("User not found"), res: null };
     }
   } catch (err) {
-    return {error: err, res: null};
+    return { error: err, res: null };
   } finally {
     if (connection) connection.release();
   }
@@ -285,12 +292,12 @@ User.updateBnbById = async (userTelegramId, approvedBnb) => {
         updatedBnb,
         userTelegramId,
       ]);
-      return {error: null, res: updateRes};
+      return { error: null, res: updateRes };
     } else {
-      return {error: new Error("User not found"), res: null};
+      return { error: new Error("User not found"), res: null };
     }
   } catch (err) {
-    return {error: err, res: null};
+    return { error: err, res: null };
   } finally {
     if (connection) connection.release();
   }
@@ -302,11 +309,11 @@ User.updateAdminData = async (data, result) => {
   try {
     connection = await pool.getConnection();
 
-      const query = `UPDATE tbl_admin SET trx_address = ?, bnb_address = ?, trx_withdraw_amount = ?, bnb_withdraw_amount = ? WHERE id = ?`;
-      const [updateRes] = await connection.query(query, [
-        data.trx_address, data.bnb_address, data.trx_withdraw_amount, data.bnb_withdraw_amount,  data.id
-      ]);
-      result(null, updateRes);
+    const query = `UPDATE tbl_admin SET trx_address = ?, bnb_address = ?, trx_withdraw_amount = ?, bnb_withdraw_amount = ? WHERE id = ?`;
+    const [updateRes] = await connection.query(query, [
+      data.trx_address, data.bnb_address, data.trx_withdraw_amount, data.bnb_withdraw_amount, data.id
+    ]);
+    result(null, updateRes);
   } catch (err) {
     result(err, null);
   } finally {
@@ -351,7 +358,7 @@ User.purchasePlant = async (userTelegramId, plantId, landPosition) => {
                                   tbl_plant p ON p.id = ?
                                 WHERE 
                                   u.telegram_id = ?`;
-    const isLandValidateQuery =  `SELECT 
+    const isLandValidateQuery = `SELECT 
                                       COUNT(*) AS total_land, 
                                       plant_details.user_id
                                   FROM 
@@ -366,43 +373,60 @@ User.purchasePlant = async (userTelegramId, plantId, landPosition) => {
                                       tbl_plant_list.user_id = plant_details.user_id 
                                   WHERE 
                                       tbl_plant_list.user_id = ? 
-                                      AND tbl_plant_list.is_harvested = 0;`                                  
+                                      AND tbl_plant_list.is_harvested = 0;`
     const [isAmountValidResult] = await connection.query(isAmountValidQuery, [plantId, userTelegramId]);
     const [isLandValidateResult] = await connection.query(isLandValidateQuery, [userTelegramId, landPosition, userTelegramId]);
-    
-    if(isAmountValidResult[0].difference < 0) {
-      return { error: true, result: "Token amount is not sufficient"}
-    } 
-     if (isLandValidateResult[0].total_land > 8 || isLandValidateResult[0].user_id != null) {
-      return { error: true, result: "Already planted"}
+
+    if (isAmountValidResult[0]?.difference < 0) {
+      return { error: true, result: "Token amount is not sufficient" }
+    }
+    if (isLandValidateResult[0].total_land > 19 || isLandValidateResult[0].user_id != null) {
+      return { error: true, result: "Already planted" }
     }
 
     const updateQuery = `UPDATE tbl_user SET token_amount = ? WHERE telegram_id = ?`
     const [updateResult] = await connection.query(updateQuery, [isAmountValidResult[0].difference, userTelegramId])
-    return {error: null, result: updateResult}
+    return { error: null, result: updateResult }
   } catch (err) {
-    return {error: err, result: null}
+    return { error: err, result: null }
   } finally {
     if (connection) connection.release();
   }
 }
 
 //increase token amount
-User.increaseToken = async (telegramId, plantId) => {
+User.increaseToken = async (telegramId, landPosition) => {
   let connection;
 
   try {
     connection = await pool.getConnection();
-    const query = "update tbl_user set token_amount = ";
-    const [res] = await connection.query(query, [id]);
 
-    if (res.length) {
-      result(null, res[0]);
+    const getPlantEarningQuery = `SELECT 
+                                      p.earn 
+                                  FROM 
+                                      tbl_plant_list pl
+                                  JOIN 
+                                      tbl_plant p ON pl.plant_id = p.id
+                                  WHERE 
+                                      pl.user_id = ? 
+                                      AND pl.land_position = ?;`;
+
+    const [getPlantEarningResult] = await connection.query(getPlantEarningQuery, [telegramId, landPosition]);
+    
+    if (getPlantEarningResult.length) {
+      const query = "update tbl_user set token_amount = token_amount + ? where telegram_id = ?";
+      const [res] = await connection.query(query, [getPlantEarningResult[0].earn, telegramId]);
+      if (res.affectedRows) {
+        return { error: false, result: "Harvested successfully" };
+      } else {
+        return { result: 'user not found', error: true };
+      }
     } else {
-      result({ kind: "not_found" }, null);
+      return { result: 'Plant not found', error: true };
     }
   } catch (err) {
-    result(err, null);
+    console.log(err)
+    return { error: true, result: 'Sever error' };
   } finally {
     if (connection) connection.release();
   }
@@ -418,12 +442,12 @@ User.getFriendCount = async (telegramId) => {
     const [res] = await connection.query(query, [telegramId]);
 
     if (res.length) {
-      return {error: false, result: res[0]};
+      return { error: false, result: res[0] };
     } else {
-      return { error: "not_found" , result: null};
+      return { error: "not_found", result: null };
     }
   } catch (err) {
-    return {error: true, result: "server error"};
+    return { error: true, result: "server error" };
   } finally {
     if (connection) connection.release();
   }
@@ -440,12 +464,12 @@ User.isLastStealDateValid = async (telegramId) => {
     const [res] = await connection.query(query, [telegramId]);
 
     if (res.length) {
-      return {error: false, result: res[0]};
+      return { error: false, result: res[0] };
     } else {
-      return { error: "not_found" , result: null};
+      return { error: "not_found", result: null };
     }
   } catch (err) {
-    return {error: true, result: "server error"};
+    return { error: true, result: "server error" };
   } finally {
     if (connection) connection.release();
   }
@@ -462,15 +486,112 @@ User.stealFriend = async (telegramId, stealAmount) => {
     const [res] = await connection.query(query, [stealAmount, telegramId]);
 
     if (res) {
-      return {error: false, result: res};
+      return { error: false, result: res };
     } else {
-      return { error: true , result: 'not found'};
+      return { error: true, result: 'not found' };
     }
   } catch (err) {
-    return {error: true, result: "server error"};
+    return { error: true, result: "server error" };
   } finally {
     if (connection) connection.release();
   }
 }
 
+
+// upgrade level up token
+User.upgradeLevelUpToken = async (telegramId, levelUpAmount) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    const query = `UPDATE tbl_user 
+                    SET token_amount = token_amount - ?,  level_up_token = level_up_token + ?
+                    WHERE telegram_id = ? 
+                    AND token_amount - ? > 0;`;
+
+    const [res] = await connection.query(query, [levelUpAmount, levelUpAmount, telegramId, levelUpAmount]);
+    if (res.changedRows == 0) {
+      return { error: false, result: "Amount is not valid" }
+    }
+
+    if (res) {
+      return { error: false, result: res };
+    } else {
+      return { error: true, result: 'not found' };
+    }
+  } catch (err) {
+    return { error: true, result: "server error" };
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+// upgrade level up token
+User.getCurrentLevel = async (telegramId) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    const query = `SELECT
+                      u.id AS user_id,
+                      u.name,
+                      u.xp,
+                      l.level,
+                      l.unlock_count
+                  FROM
+                      tbl_user u
+                  JOIN
+                      tbl_level l ON u.xp >= l.xp
+                  WHERE
+                      u.id = ? -- Replace ? with the specific user ID
+                  ORDER BY
+                      l.xp DESC
+                  LIMIT 1;`;
+
+    const [res] = await connection.query(query, [telegramId]);
+    if (res.changedRows == 0) {
+      return { error: false, result: "Amount is not valid" }
+    }
+
+    if (res) {
+      return { error: false, result: res };
+    } else {
+      return { error: true, result: 'not found' };
+    }
+  } catch (err) {
+    return { error: true, result: "server error" };
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+// upgrade level up token
+User.updateAmountOrXP = async (telegramId, amount, bonus_type) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    let updateQuery;
+    if(bonus_type == 0) {
+      updateQuery = `UPDATE tbl_user SET token_amount = token_amount + ? WHERE telegram_id = ?`
+    } else {
+      updateQuery = `UPDATE tbl_user SET xp = xp + ? WHERE telegram_id = ?`
+    }
+    const [updateResult] = await connection.query(updateQuery, [amount, telegramId])  
+
+    if (updateResult.changedRows == 0) {
+      return { error: false, result: "Nothing to update" }
+    }
+
+    if (updateResult) {
+      return { error: false, result: updateResult };
+    } else {
+      return { error: true, result: 'not found' };
+    }
+  } catch (err) {
+    return { error: true, result: "server error" };
+  } finally {
+    if (connection) connection.release();
+  }
+}
 module.exports = User;

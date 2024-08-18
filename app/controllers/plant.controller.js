@@ -68,7 +68,7 @@ exports.seedNewPlant = async (req, res) => {
 // plant new crop
 /**
  * 
- * @param {id, landPosition, plantId} req 
+ * @param {id, landPosition} req 
  * @param {message, success} res 
  */
 exports.harvestPlant = async (req, res) => {
@@ -78,7 +78,6 @@ exports.harvestPlant = async (req, res) => {
     land_position: req.body.landPosition
   };
   const result = await Plant.harvestPlant(havestedPlant);
-  console.log(result)
   if(result.error) {
     res.send({
       message: result.error,
@@ -86,10 +85,21 @@ exports.harvestPlant = async (req, res) => {
     })
   } else {
     // increase token amount
-    const increasedResult = User.increaseToken(userTelegramId, req.body.plantId);
-    
-    console.log(increasedResult)
-
+    const increasedResult = await User.increaseToken(userTelegramId, req.body.landPosition);
+    if(increasedResult.error) {
+      res.send({
+        message: increasedResult.result,
+        success: false
+      })
+      return;
+    }
+    if(result.result.affectedRows == 0) {
+      res.send({
+        message: "Harvest time is not valid",
+        success: false
+      })
+      return;
+    }
     res.send({
       message: result.result,
       success: true
@@ -105,7 +115,6 @@ exports.harvestPlant = async (req, res) => {
  */
 exports.getAllPlant = async (req, res) => {
   const result = await Plant.getPlants();
-  console.log(result)
   if(result.error) {
     res.send({
       message: result.error,
@@ -123,3 +132,42 @@ exports.getAllPlant = async (req, res) => {
     })
   }
 }
+
+// // plant new crop
+// /**
+//  * 
+//  * @param {id, plant_id} req 
+//  * @param {message, success} res 
+//  */
+// exports.purchaseNewPlant = async (req, res) => {
+//   const userTelegramId = req.body.id;
+//   const plantId = req.body.plant_id;
+//   const result = await Plant.purchaseNewPlant(userTelegramId, plantId);
+//   if(result.error) {
+//     res.send({
+//       message: result.error,
+//       success: false
+//     })
+//   } else {
+//     // increase token amount
+//     const increasedResult = await User.increaseToken(userTelegramId, req.body.landPosition);
+//     if(increasedResult.error) {
+//       res.send({
+//         message: increasedResult.result,
+//         success: false
+//       })
+//       return;
+//     }
+//     if(result.result.affectedRows == 0) {
+//       res.send({
+//         message: "Harvest time is not valid",
+//         success: false
+//       })
+//       return;
+//     }
+//     res.send({
+//       message: result.result,
+//       success: true
+//     })
+//   }
+// }

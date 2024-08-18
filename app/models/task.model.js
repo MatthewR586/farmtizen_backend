@@ -60,6 +60,7 @@ Task.getTaskByTelegramId = async (telegramId) => {
                     t.bonus,
                     t.link,
                     t.type,
+                    t.bonus_type,
                     t.created_at AS task_created_at,
                     t.updated_at AS task_updated_at,
                     COALESCE(ts.user_id = ?, 0) AS status

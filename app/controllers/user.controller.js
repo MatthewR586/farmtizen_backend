@@ -305,3 +305,54 @@ exports.stealFriend = async (req, res) => {
     }) 
   }
 };
+
+
+// get current users friend count
+exports.upgradeLevelUpToken = async (req, res) => {
+  if (!req.body.id || !req.body.amount) {
+    res.send({
+      message: "telegram id or token amount is not valid",
+      success: false
+    });
+    return;
+  }
+ 
+  const result = await User.upgradeLevelUpToken(req.body.id, req.body.amount);
+  
+  if(result.error) {
+    res.send({
+      message: "bad request",
+      success:  false
+    })  
+  } else {
+    res.send({
+      message: {...result.result, token_per_referral: 100},
+      success:  true 
+    })
+  }
+};
+
+// get current users friend count
+exports.getCurrentLevel = async (req, res) => {
+  if (!req.query.id) {
+    res.send({
+      message: "telegram id  is not valid",
+      success: false
+    });
+    return;
+  }
+ 
+  const result = await User.getCurrentLevel(req.body.id);
+  
+  if(result.error) {
+    res.send({
+      message: "bad request",
+      success:  false
+    })  
+  } else {
+    res.send({
+      message: result.result,
+      success:  true 
+    })
+  }
+};

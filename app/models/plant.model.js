@@ -86,11 +86,11 @@ Plant.seedNewPlant = async (newPlantList) => {
   
   let connection;
   try {
-    const createQuery =  `INSERT INTO tbl_plant_list (user_id, plant_id, land_position)
-                          SELECT ?, ?, ?
+    const createQuery =  `INSERT INTO tbl_plant_list (user_id, plant_id, land_position, land_started_time)
+                          SELECT ?, ?, ?, ?
                           WHERE (SELECT COUNT(*) 
                                 FROM tbl_plant_list 
-                                WHERE user_id = ? AND is_harvested = 0) < 9
+                                WHERE user_id = ? AND is_harvested = 0) < 20
                           AND NOT EXISTS (
                             SELECT 1 
                             FROM tbl_plant_list 
@@ -100,7 +100,7 @@ Plant.seedNewPlant = async (newPlantList) => {
     connection = await pool.getConnection();
 
     // Insert the new plant into the database
-    const [createResult] = await connection.query(createQuery, [newPlantList.user_id, newPlantList.plant_id, newPlantList.land_position, newPlantList.user_id, newPlantList.user_id, newPlantList.land_position]);
+    const [createResult] = await connection.query(createQuery, [newPlantList.user_id, newPlantList.plant_id, newPlantList.land_position, new Date().toISOString(),newPlantList.user_id, newPlantList.user_id, newPlantList.land_position]);
     return { result: createResult, error: null };
 
   } catch (err) {

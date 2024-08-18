@@ -2,6 +2,7 @@ const { default: axios } = require("axios");
 const Crypto = require("../models/crypto.model.js");
 const TaskModel = require("../models/task.model.js")
 const fs = require('fs');
+const User = require("../models/user.model.js");
 
 exports.getTasks = async (req, res) => {
   const userTelegramId = req.params.id;
@@ -33,47 +34,67 @@ exports.createTaskStatus = async (req, res) => {
     case 1:
       const urlObj = new URL(req.body.link);
       const chatId = urlObj.pathname.slice(1);
-            //check join status
-            const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_KEY}/getChatMember?chat_id=@${chatId}&user_id=${userTelegramId}`;
-            try {
-              const response = await axios.get(url);
-              const responseData = response.data;
-              if (responseData.ok) {
-                const status = responseData.result.status;
-                if (status === 'member' || status === 'administrator' || status === 'creator') {
-                    const taskResult =await TaskModel.createStatus({user_id: userTelegramId, task_id: req.body.task_id});
-                    res.send({
-                      message: taskResult.result,
-                      success: taskResult.error
-                    })
-                } else {
-                  res.send({
-                    message: `User ${userTelegramId} is not a member of the chat ${chatId}.`,
-                    success: false
-                  })
-                }
-              } else {
+      //check join status
+      const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_KEY}/getChatMember?chat_id=@${chatId}&user_id=${userTelegramId}`;
+      try {
+        const response = await axios.get(url);
+        const responseData = response.data;
+        if (responseData.ok) {
+          const status = responseData.result.status;
+          if (status === 'member' || status === 'administrator' || status === 'creator') {
+            const taskResult = await TaskModel.createStatus({ user_id: userTelegramId, task_id: req.body.task_id });
+            if (!taskResult.error) {
+              const updateAmountOrXpResult = await User.updateAmountOrXP(userTelegramId, taskResult.result[0].bonus, taskResult.result[0].bonus_type);
+              if (updateAmountOrXpResult.error) {
                 res.send({
-                  message: `server error`,
-                  success: false
+                  message: 'server error',
+                  success: updateAmountOrXpResult.error
                 })
               }
-            } catch (error) {
-              res.send({
-                message: `error fetching chat member info: ${error.response.data.description}`,
-                success: false
-              })
             }
-      
+            res.send({
+              message: taskResult.result,
+              success: taskResult.error
+            })
+          } else {
+            res.send({
+              message: `User ${userTelegramId} is not a member of the chat ${chatId}.`,
+              success: false
+            })
+          }
+        } else {
+          res.send({
+            message: `server error`,
+            success: false
+          })
+        }
+      } catch (error) {
+        res.send({
+          message: `error fetching chat member info: ${error.response.data.description}`,
+          success: false
+        })
+      }
+
       break;
     case 2:
-      const taskResult =await TaskModel.createStatus({user_id: userTelegramId, task_id: req.body.task_id});
+      const taskResult = await TaskModel.createStatus({ user_id: userTelegramId, task_id: req.body.task_id });
+      console.log(taskResult.result)
+      if (!taskResult.error) {
+        const updateAmountOrXpResult = await User.updateAmountOrXP(userTelegramId, taskResult.result[0].bonus, taskResult.result[0].bonus_type);
+        console.log({ updateAmountOrXpResult })
+        if (updateAmountOrXpResult.error) {
+          res.send({
+            message: 'server error',
+            success: updateAmountOrXpResult.error
+          })
+        }
+      }
+
       res.send({
         message: taskResult.result,
         success: taskResult.error
       })
       break;
-  
     default:
       break;
   }
@@ -82,7 +103,7 @@ exports.createTaskStatus = async (req, res) => {
   //     message: result.error || result.res,
   //     success: error ? false : true
   //   })
-  
+
   // })
 }
 
@@ -94,7 +115,7 @@ exports.createTaskStatus = async (req, res) => {
 
 exports.createTask = async (req, res) => {
   //save db
-  const taskResult = await TaskModel.create({name: req.body.name, bonus: req.body.bonus, image_url: req.file.filename, link: req.body.link, type: req.body.type})
+  const taskResult = await TaskModel.create({ name: req.body.name, bonus: req.body.bonus, image_url: req.file.filename, link: req.body.link, type: req.body.type })
   res.send({
     message: taskResult.error || taskResult.res,
     success: taskResult.error ? false : true
@@ -109,7 +130,7 @@ exports.createTask = async (req, res) => {
  */
 
 exports.delete = async (req, res) => {
-  
+
   const taskResult = await TaskModel.delete(req.params.id)
   console.log(taskResult)
   res.send({
