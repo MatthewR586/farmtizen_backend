@@ -45,7 +45,7 @@ exports.seedNewPlant = async (req, res) => {
   const result = await Plant.seedNewPlant(newPlantList);
     res.send({
       message: result.result,
-      success: result.error
+      success: !result.error
     })
 }
 
@@ -158,6 +158,6 @@ exports.getStorePlant = async (req, res) => {
   const result = await User.getStorePlant(userTelegramId);
     res.send({
       message: result.result,
-      success: result.error
+      success: !result.error
     })
 }
