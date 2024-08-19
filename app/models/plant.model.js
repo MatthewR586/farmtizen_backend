@@ -139,7 +139,7 @@ Plant.harvestPlant = async (harvestedPlant) => {
                             tpl.user_id = ? 
                             AND tpl.land_position = ?
                             AND tpl.is_harvested = 0 
-                            AND TIMESTAMPDIFF( SECOND, tpl.land_started_time, NOW( ) ) > tp.harvest_time;`;
+                            AND TIMESTAMPDIFF( SECOND, tpl.land_started_time, UTC_TIMESTAMP( ) ) > tp.harvest_time;`;
     connection = await pool.getConnection();
 
     // Insert the new plant into the database

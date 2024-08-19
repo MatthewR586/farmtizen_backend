@@ -6,6 +6,7 @@ const BN = require("bn.js");
 const User = function (user) {
   this.telegram_id = user.id;
   this.referral_id = user.referral_id;
+  this.name = user.name;
 };
 
 User.register = async (newUser, result) => {
@@ -81,6 +82,7 @@ User.login = async (email, password, result) => {
 
 // Login method
 User.auth = async (user, referral_id) => {
+  console.log(user)
   let connection;
   try {
     connection = await pool.getConnection();
@@ -102,7 +104,7 @@ User.auth = async (user, referral_id) => {
     const [res] = await connection.query(loginQuery, [user.id, user.id]);
 
     if (res.length) {
-      return { error: null, result: { ...res[0], exist: true } };
+      return { error: false, result: { ...res[0] } };
     } else {
       const newUser = new User({ ...user, referral_id });
 
@@ -110,10 +112,10 @@ User.auth = async (user, referral_id) => {
       const [insertRes] = await connection.query(insertQuery, newUser);
 
       const [newUserRes] = await connection.query(loginQuery, [insertRes.insertId, insertRes.insertId]);
-      return { error: null, result: { ...newUserRes[0], exist: false } };
+      return { error: false, result: { ...newUserRes[0] } };
     }
   } catch (err) {
-    return { error: err, result: null };
+    return { error: true, result: err };
   } finally {
     if (connection) connection.release();
   }
@@ -417,7 +419,6 @@ User.increaseToken = async (telegramId, landPosition) => {
                                       AND pl.land_position = ?;`;
 
     const [getPlantEarningResult] = await connection.query(getPlantEarningQuery, [telegramId, landPosition]);
-    
     if (getPlantEarningResult.length) {
       const query = "update tbl_user set token_amount = token_amount + ? where telegram_id = ?";
       const [res] = await connection.query(query, [getPlantEarningResult[0].earn, telegramId]);
