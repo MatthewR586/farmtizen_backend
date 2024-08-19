@@ -632,4 +632,21 @@ User.getTonRate = async () => {
     if (connection) connection.release();
   }
 }
+
+
+//get admin wallet address
+User.getAdminWalletAddress = async () => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    const getQuery = `select wallet_address from tbl_configuration`;
+    const [getResult] = await connection.query(getQuery)  
+    return {error: false, result: getResult[0]}
+  } catch (err) {
+    return { error: true, result: "server error" };
+  } finally {
+    if (connection) connection.release();
+  }
+}
 module.exports = User;

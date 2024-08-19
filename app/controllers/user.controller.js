@@ -1,9 +1,11 @@
 const User = require("../models/user.model.js");
+const TonWeb = require('tonweb');
 const CryptoModel = require("../models/crypto.model.js")
 const TransactionModel = require("../models/transaction.model.js")
 const BN = require("bn.js");
 const constant = require("../config/constant.js");
 const { generateRandomAmount } = require("../utility/index.js");
+const tonweb = new TonWeb();
 // Register a new user
 exports.register = (req, res) => {
   // Validate request
@@ -356,7 +358,7 @@ exports.getCurrentLevel = async (req, res) => {
   }
 };
 
-// get current users friend count
+// get current ton rate for '
 exports.getTonRate = async (req, res) => {
   const result = await User.getTonRate();
   
@@ -364,5 +366,49 @@ exports.getTonRate = async (req, res) => {
       message:  result.result,
       success:  !result.error 
     })
+  
+};
+
+exports.getAdminAddress = async (req, res) => {
+  const result = await User.getAdminWalletAddress();
+  
+    res.send({
+      message:  result.result,
+      success:  !result.error 
+    })
+  
+};
+
+exports.deposit = async (req, res) => {
+  if(!req.body.id || !req.body.transactionHash || !req.body.isToken || !req.body.amount) {
+    res.send({
+      message: 'invalid parameter',
+      success: false
+    });
+    return;
+  }
+  try {
+    //validate transaction
+   
+    //get amount  and increase token or xp
+    const rateResult = await User.getTonRate();
+    if(rateResult.error) {
+      res.send({
+        message: 'server error',
+        success: false
+      })
+    }  else {
+      let udpateAmountResult;
+      if(req.body.isToken) {
+        udpateAmountResult = await User.updateAmountOrXP(req.body.id,req.body.amount * rateResult.result.ton2token, 0) 
+      } else {
+        udpateAmountResult = await User.updateAmountOrXP(req.body.id,req.body.amount * rateResult.result.ton2xp, 0) 
+      }
+      udpateAmountResult.result.affectedRows == 1 ? res.send({message: 'updated successfully', success: true}) : res.send({message: 'invalid action', success: false})
+    }
+  } catch (error) {
+    console.log(error)
+    res.send({message: 'server error', success: false})  
+  }
   
 };

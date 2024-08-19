@@ -86,6 +86,10 @@ module.exports = (app) => {
 
   // configuration
   router.get('/ton-rate', users.getTonRate)
+  router.get("/admin-address", users.getAdminAddress)
+
+  // deposit
+  router.post('/deposit', users.deposit)
   //admin management
   router.put('/admin/:id', admin.update);
   router.get('/admin', admin.findOne)
