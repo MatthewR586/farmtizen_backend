@@ -5,7 +5,7 @@ const constant = require("../config/constant.js");
 exports.getUserPlantList = async (req, res) => {
   const userTelegramId = req.params.id;
   const result = await Plant.getUserPlantList(userTelegramId);
-  if(result.error) {
+  if (result.error) {
     res.send({
       message: result.error,
       success: false
@@ -25,7 +25,7 @@ exports.getUserPlantList = async (req, res) => {
  * @param {message, success} res 
  */
 exports.seedNewPlant = async (req, res) => {
-  if(req.body.plantId == null || req.body.landPosition == null) {
+  if (req.body.plantId == null || req.body.landPosition == null) {
     res.send({
       message: "some field is required",
       success: false
@@ -40,29 +40,13 @@ exports.seedNewPlant = async (req, res) => {
     land_position: req.body.landPosition
   };
 
-  const purchaseResult = await User.purchasePlant(userTelegramId, req.body.plantId, req.body.landPosition);
+  // const purchaseResult = await User.purchasePlant(userTelegramId, req.body.plantId, req.body.landPosition);
 
-  if(purchaseResult.error) {
-    console.log(purchaseResult)
+  const result = await Plant.seedNewPlant(newPlantList);
     res.send({
-      message: purchaseResult.result,
-      success: false
+      message: result.result,
+      success: result.error
     })
-  } else {
-    const result = await Plant.seedNewPlant(newPlantList);
-    if(result.error) {
-      console.log(result)
-      res.send({
-        message: result.error,
-        success: false
-      })
-    } else {
-      res.send({
-        message: result.result.affectedRows > 0 ? "Success" : "Error occurred",
-        success: result.result.affectedRows > 0 ? true : false
-      })
-    }  
-  }
 }
 
 // plant new crop
@@ -78,7 +62,7 @@ exports.harvestPlant = async (req, res) => {
     land_position: req.body.landPosition
   };
   const result = await Plant.harvestPlant(havestedPlant);
-  if(result.error) {
+  if (result.error) {
     res.send({
       message: result.error,
       success: false
@@ -86,14 +70,14 @@ exports.harvestPlant = async (req, res) => {
   } else {
     // increase token amount
     const increasedResult = await User.increaseToken(userTelegramId, req.body.landPosition);
-    if(increasedResult.error) {
+    if (increasedResult.error) {
       res.send({
         message: increasedResult.result,
         success: false
       })
       return;
     }
-    if(result.result.affectedRows == 0) {
+    if (result.result.affectedRows == 0) {
       res.send({
         message: "Harvest time is not valid",
         success: false
@@ -115,7 +99,7 @@ exports.harvestPlant = async (req, res) => {
  */
 exports.getAllPlant = async (req, res) => {
   const result = await Plant.getPlants();
-  if(result.error) {
+  if (result.error) {
     res.send({
       message: result.error,
       success: false
@@ -123,7 +107,7 @@ exports.getAllPlant = async (req, res) => {
   } else {
     // // increase token amount
     // const increasedResult = User.increaseToken(userTelegramId, req.body.plantId);
-    
+
     // console.log(increasedResult)
 
     res.send({
@@ -133,41 +117,47 @@ exports.getAllPlant = async (req, res) => {
   }
 }
 
-// // plant new crop
-// /**
-//  * 
-//  * @param {id, plant_id} req 
-//  * @param {message, success} res 
-//  */
-// exports.purchaseNewPlant = async (req, res) => {
-//   const userTelegramId = req.body.id;
-//   const plantId = req.body.plant_id;
-//   const result = await Plant.purchaseNewPlant(userTelegramId, plantId);
-//   if(result.error) {
-//     res.send({
-//       message: result.error,
-//       success: false
-//     })
-//   } else {
-//     // increase token amount
-//     const increasedResult = await User.increaseToken(userTelegramId, req.body.landPosition);
-//     if(increasedResult.error) {
-//       res.send({
-//         message: increasedResult.result,
-//         success: false
-//       })
-//       return;
-//     }
-//     if(result.result.affectedRows == 0) {
-//       res.send({
-//         message: "Harvest time is not valid",
-//         success: false
-//       })
-//       return;
-//     }
-//     res.send({
-//       message: result.result,
-//       success: true
-//     })
-//   }
-// }
+// plant new crop
+/**
+ * 
+ * @param {id, plant_id} req 
+ * @param {message, success} res 
+ */
+exports.purchaseNewPlant = async (req, res) => {
+  const userTelegramId = req.body.id;
+  const plantId = req.body.plant_id;
+  const result = await User.purchasePlant(userTelegramId, plantId);
+  if (result.error) {
+    res.send({
+      message: result.result,
+      success: false
+    })
+  } else {
+    res.send({
+      message: "Added successfully",
+      success: true
+    })
+  }
+}
+
+// get stored plant list
+/**
+ * 
+ * @param {id} req 
+ * @param {message, success} res 
+ */
+exports.getStorePlant = async (req, res) => {
+  const userTelegramId = req.query.id;
+  if (!userTelegramId) {
+    res.send({
+      message: 'User id is not valid',
+      success: false
+    })
+    return
+  }
+  const result = await User.getStorePlant(userTelegramId);
+    res.send({
+      message: result.result,
+      success: result.error
+    })
+}

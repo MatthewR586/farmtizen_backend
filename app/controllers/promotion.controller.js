@@ -148,3 +148,26 @@ exports.getPromotionDetail = async (req, res) => {
     })
   }
 }
+
+// Get Past Promotion
+/**
+ * 
+ * @param {} req 
+ * @param {message, success} res 
+ */
+exports.getAllPromotions = async (req, res) => {
+  const result = await Promotion.getAllPromotions();
+  console.log(result)
+  if(result.error) {
+    res.send({
+      message: result.error,
+      success: false
+    })
+  } else {
+  
+    res.send({
+      message: result.result,
+      success: true
+    })
+  }
+}

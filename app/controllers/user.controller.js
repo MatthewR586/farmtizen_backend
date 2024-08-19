@@ -16,7 +16,6 @@ exports.register = (req, res) => {
 
   // Create a User
   const user = {
-    name: req.body.name,
     email: req.body.email,
     password: req.body.password,
   };
@@ -355,4 +354,15 @@ exports.getCurrentLevel = async (req, res) => {
       success:  true 
     })
   }
+};
+
+// get current users friend count
+exports.getTonRate = async (req, res) => {
+  const result = await User.getTonRate();
+  
+    res.send({
+      message:  result.result,
+      success:  !result.error 
+    })
+  
 };

@@ -5,7 +5,6 @@ const BN = require("bn.js");
 // Constructor
 const User = function (user) {
   this.telegram_id = user.id;
-  this.name = user.name;
   this.referral_id = user.referral_id;
 };
 
@@ -149,19 +148,15 @@ User.getAll = async (name, result) => {
     connection = await pool.getConnection();
     let query = `
           SELECT 
-              u.first_name, 
-              u.last_name, 
-              u.username,
-              u.th_speed,
-              (SELECT COUNT(*) FROM tbl_user WHERE referral_id = u.telegram_id) AS referral_counts,
-              COALESCE(SUM(CASE WHEN th.token_type = 0 THEN th.amount END), 0) AS trx_deposit_amount,
-              COALESCE(SUM(CASE WHEN th.token_type = 1 THEN th.amount END), 0) AS bnb_deposit_amount
+              u.name,
+              u.token_amount,
+              u.last_steal_date,
+              u.xp,
+              (SELECT COUNT(*) FROM tbl_user WHERE referral_id = u.telegram_id) AS referral_counts
           FROM 
               tbl_user u
-          LEFT JOIN 
-              tbl_transaction_history th ON u.telegram_id = th.user_id
           GROUP BY 
-              u.id, u.first_name, u.last_name, u.username, u.th_speed
+              u.id, u.name, u.token_amount
       `;
 
     if (name) {
@@ -344,7 +339,7 @@ User.findAdminDataById = async (id, result) => {
 
 
 // Purchase Plant
-User.purchasePlant = async (userTelegramId, plantId, landPosition) => {
+User.purchasePlant = async (userTelegramId, plantId) => {
   let connection;
 
   try {
@@ -358,35 +353,45 @@ User.purchasePlant = async (userTelegramId, plantId, landPosition) => {
                                   tbl_plant p ON p.id = ?
                                 WHERE 
                                   u.telegram_id = ?`;
-    const isLandValidateQuery = `SELECT 
-                                      COUNT(*) AS total_land, 
-                                      plant_details.user_id
-                                  FROM 
-                                      tbl_plant_list 
-                                  LEFT JOIN 
-                                      (SELECT * 
-                                      FROM tbl_plant_list 
-                                      WHERE user_id = ? 
-                                      AND land_position = ? 
-                                      AND is_harvested = 0) AS plant_details 
-                                  ON 
-                                      tbl_plant_list.user_id = plant_details.user_id 
-                                  WHERE 
-                                      tbl_plant_list.user_id = ? 
-                                      AND tbl_plant_list.is_harvested = 0;`
     const [isAmountValidResult] = await connection.query(isAmountValidQuery, [plantId, userTelegramId]);
-    const [isLandValidateResult] = await connection.query(isLandValidateQuery, [userTelegramId, landPosition, userTelegramId]);
 
     if (isAmountValidResult[0]?.difference < 0) {
       return { error: true, result: "Token amount is not sufficient" }
     }
-    if (isLandValidateResult[0].total_land > 19 || isLandValidateResult[0].user_id != null) {
-      return { error: true, result: "Already planted" }
-    }
 
     const updateQuery = `UPDATE tbl_user SET token_amount = ? WHERE telegram_id = ?`
     const [updateResult] = await connection.query(updateQuery, [isAmountValidResult[0].difference, userTelegramId])
-    return { error: null, result: updateResult }
+    if(!updateResult.affectedRows) {
+      return { error: true, result: 'server error'}
+    }
+    
+    const upsertPlantToStore = `INSERT INTO tbl_store (user_id, plant_id, count)
+                                VALUES (?, ?, 1)
+                                ON DUPLICATE KEY UPDATE count = count + 1;
+                                `
+    const [upsertResult] = await connection.query(upsertPlantToStore, [userTelegramId, plantId])                                  
+    console.log(upsertResult)
+    return { error: null, result: upsertResult }
+  } catch (err) {
+    return { error: err, result: null }
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+//Add plant to store
+User.addPlantToStore = async (userTelegramId, plantId) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+
+    const upsertPlantToStore = `INSERT INTO tbl_store (user_id, plant_id, count)
+                                VALUES (?, ?, 1)
+                                ON DUPLICATE KEY UPDATE count = count + 1;
+                                `
+    const [upsertResult] = await connection.query(upsertPlantToStore, [userTelegramId, plantId])                                  
+    return { error: null, result: upsertResult }
   } catch (err) {
     return { error: err, result: null }
   } finally {
@@ -588,6 +593,38 @@ User.updateAmountOrXP = async (telegramId, amount, bonus_type) => {
     } else {
       return { error: true, result: 'not found' };
     }
+  } catch (err) {
+    return { error: true, result: "server error" };
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+// upgrade level up token
+User.getStorePlant = async (telegramId) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    const getQuery = `select tbl_plant.*, tbl_store.count from tbl_store LEFT JOIN tbl_plant on tbl_plant.id = tbl_store.plant_id where user_id = ?`;
+    const [getResult] = await connection.query(getQuery, [ telegramId])  
+    return {error: false, result: getResult}
+  } catch (err) {
+    return { error: true, result: "server error" };
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+//get ton rate for token and xp
+User.getTonRate = async () => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    const getQuery = `select ton2token, ton2xp from tbl_configuration`;
+    const [getResult] = await connection.query(getQuery)  
+    return {error: false, result: getResult[0]}
   } catch (err) {
     return { error: true, result: "server error" };
   } finally {

@@ -3,9 +3,10 @@ const BN = require("bn.js");
 
 // Constructor
 const Task = function (task) {
-  this.name = task.name;
+  this.title = task.title;
   this.bonus = task.bonus;
-  this.image_url = task.image_url;
+  this.bonus_type = task.bonus_type;
+  this.link = task.link;
 };
 
 Task.create = async (newTask) => {

@@ -1,3 +1,4 @@
+const constant = require("../config/constant.js");
 const pool = require("./db.js");
 
 // Constructor
@@ -41,4 +42,31 @@ Spin.getSpin = async () => {
     if (connection) connection.release();
   }
 }
+
+Spin.addNewSpinList = async (newSpinItem) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const updateTokenAmountQuery = `UPDATE tbl_user 
+                    SET token_amount = token_amount - ?
+                    WHERE telegram_id = ? 
+                    AND token_amount - ? >= 0;`;
+    const [updateTokenAmountResult] = await connection.query(updateTokenAmountQuery, [constant.SPIN_TOKEN_AMOUNT, newSpinItem.user_id, constant.SPIN_TOKEN_AMOUNT])
+    console.log(updateTokenAmountResult)
+    if (!updateTokenAmountResult.affectedRows) {
+      return {result: 'Token amount is not sufficient', error: true}
+    }
+    const createNewSpinList = `INSERT INTO tbl_spin_list set ?`;
+
+    // Insert the new spin into the database
+    const [insertSpinResult] = await connection.query(createNewSpinList, [newSpinItem]);
+    return { result: insertSpinResult, error: false };
+
+  } catch (err) {
+    return { result: err, error: true };
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
 module.exports = Spin;

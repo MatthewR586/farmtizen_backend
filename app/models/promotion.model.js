@@ -28,6 +28,22 @@ Promtion.getPromotion = async (pageIndex) => {
   }
 }
 
+Promtion.getAllPromotions = async (pageIndex) => {
+  let connection;
+  try {
+    const getPromotionQuery = `select * from tbl_promotion order by expired_date desc`;
+    connection = await pool.getConnection();
+
+    // Insert the new plant into the database
+    const [getPromotionResult] = await connection.query(getPromotionQuery);
+    return { result: getPromotionResult, error: null };
+
+  } catch (err) {
+    return { result: null, error: err };
+  } finally {
+    if (connection) connection.release();
+  }
+}
 Promtion.getPurchasedPromotion = async (id, pageIndex) => {
   let connection;
   try {

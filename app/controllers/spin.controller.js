@@ -1,4 +1,6 @@
 const Spin = require("../models/spin.model.js");
+const User = require("../models/user.model.js");
+const { updateAmountOrXP } = require("../models/user.model.js");
 
 // Add New Spin
 /**
@@ -7,15 +9,15 @@ const Spin = require("../models/spin.model.js");
  * @param {message, success} res 
  */
 exports.addnewSpin = async (req, res) => {
-  const result = await Spin.addnewSpin({name: req.body.name, type: req.body.type, icon: req.body.icon, bonus: req.body.bonus});
+  const result = await Spin.addnewSpin({ name: req.body.name, type: req.body.type, icon: req.body.icon, bonus: req.body.bonus });
 
-  if(result.error) {
+  if (result.error) {
     res.send({
       message: result.error,
       success: false
     })
   } else {
-  
+
     res.send({
       message: result.result,
       success: true
@@ -32,13 +34,13 @@ exports.addnewSpin = async (req, res) => {
 exports.getSpinList = async (req, res) => {
   const result = await Spin.getSpin();
 
-  if(result.error) {
+  if (result.error) {
     res.send({
       message: result.error,
       success: false
     })
   } else {
-  
+
     res.send({
       message: result.result,
       success: true
@@ -54,17 +56,43 @@ exports.getSpinList = async (req, res) => {
  */
 exports.addNewSpinList = async (req, res) => {
   const result = await Spin.getSpin();
+  const randomSpin = result.result[Math.floor(Math.random() * result.result.length)]
+  
+  const addNewSpinResult = await Spin.addNewSpinList({user_id: req.body.id, spin_id: randomSpin.id});
 
-  if(result.error) {
+  if (result.error) {
     res.send({
-      message: result.error,
+      message: result.result,
       success: false
     })
   } else {
+    const randomSpin = result.result[Math.floor(Math.random() * result.result.length)]
+      
+    switch (randomSpin.type) {
+      case 0: // game token
+      case 1: // xp
+        updateAmountOrXP(req.body.id, randomSpin.bonus, randomSpin.type)
+        break;
+      case 2: // plant
+        User.addPlantToStore(req.body.id, randomSpin.bonus)
+        break;
   
-    res.send({
-      message: result.result,
-      success: true
-    })
+      default:
+        break;
+    }
+
+    if (addNewSpinResult.error) {
+      res.send({
+        message: addNewSpinResult.result,
+        success: false
+      })  
+    } else {
+
+      res.send({
+        message: randomSpin,
+        success: true
+      })
+    }
+
   }
 }

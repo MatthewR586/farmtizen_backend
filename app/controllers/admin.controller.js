@@ -17,11 +17,10 @@ exports.register = (req, res) => {
 
   // Create a User
   const user = {
-    name: req.body.name,
     email: req.body.email,
     password: req.body.password,
   };
-
+console.log(user)
   // Save User in the database
   User.register(user, (err, data) => {
     if (err) {

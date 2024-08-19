@@ -83,10 +83,19 @@ Plant.getUserPlantList = async (userTelegramId) => {
 
 
 Plant.seedNewPlant = async (newPlantList) => {
-  
+
   let connection;
   try {
-    const createQuery =  `INSERT INTO tbl_plant_list (user_id, plant_id, land_position, land_started_time)
+    connection = await pool.getConnection();
+
+    const stockQuantityQuery = `select count from tbl_store where user_id = ? and plant_id = ?`
+    const [stockQuantityResult] = await connection.query(stockQuantityQuery, [newPlantList.user_id, newPlantList.plant_id])
+    console.log(stockQuantityResult[0]?.count)
+    if(stockQuantityResult[0]?.count == undefined || stockQuantityResult[0]?.count == 0) {
+      return {result: `You don't have enough stock`, error: true}
+    }
+
+    const createQuery = `INSERT INTO tbl_plant_list (user_id, plant_id, land_position, land_started_time)
                           SELECT ?, ?, ?, ?
                           WHERE (SELECT COUNT(*) 
                                 FROM tbl_plant_list 
@@ -97,13 +106,23 @@ Plant.seedNewPlant = async (newPlantList) => {
                             WHERE user_id = ? AND land_position = ? AND is_harvested = 0
                               );`;
 
-    connection = await pool.getConnection();
 
     // Insert the new plant into the database
-    const [createResult] = await connection.query(createQuery, [newPlantList.user_id, newPlantList.plant_id, newPlantList.land_position, new Date().toISOString(),newPlantList.user_id, newPlantList.user_id, newPlantList.land_position]);
-    return { result: createResult, error: null };
+    const [createResult] = await connection.query(createQuery, [newPlantList.user_id, newPlantList.plant_id, newPlantList.land_position, new Date().toISOString(), newPlantList.user_id, newPlantList.user_id, newPlantList.land_position]);
+    if(createResult.affectedRows == 0) {
+      return { result: "Already planted", error: true };
+    }
+
+    const updateInventoryQuery = `UPDATE tbl_store SET count = count - 1 WHERE user_id = ? AND plant_id = ?`
+    const [updateInventoryResult] = await connection.query(updateInventoryQuery, [newPlantList.user_id, newPlantList.plant_id]);
+    if(updateInventoryResult.affectedRows == 0) {
+      return { result: "Update failed", error: true };
+    }
+    
+    return { result: "Planted Successfully", error: false };
 
   } catch (err) {
+    console.log(err)
     return { result: null, error: err };
   } finally {
     if (connection) connection.release();
@@ -113,7 +132,7 @@ Plant.seedNewPlant = async (newPlantList) => {
 Plant.harvestPlant = async (harvestedPlant) => {
   let connection;
   try {
-    const harvestQuery =  `UPDATE tbl_plant_list tpl
+    const harvestQuery = `UPDATE tbl_plant_list tpl
                           JOIN tbl_plant tp ON tpl.plant_id = tp.id 
                           SET tpl.is_harvested = 1 
                           WHERE
@@ -138,7 +157,7 @@ Plant.harvestPlant = async (harvestedPlant) => {
 Plant.getPlants = async () => {
   let connection;
   try {
-    const getPlantQuery =  `select * from tbl_plant`;
+    const getPlantQuery = `select * from tbl_plant`;
     connection = await pool.getConnection();
 
     // Insert the new plant into the database

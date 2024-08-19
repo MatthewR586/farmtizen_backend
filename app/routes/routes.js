@@ -1,3 +1,5 @@
+const constant = require("../config/constant.js");
+
 module.exports = (app) => {
   const users = require("../controllers/user.controller.js");
   const crypto = require("../controllers/crypto.controller.js");
@@ -52,7 +54,7 @@ module.exports = (app) => {
   //task management
   router.get("/tasks/:id", taskController.getTasks); // get all tasks with status
   router.get("/task", taskController.getAll);
-  router.post("/task", upload.single("image_url"), taskController.createTask);
+  router.post("/task", taskController.createTask);
   router.delete("/task/:id", taskController.delete);
   router.post("/taskstatus", taskController.createTaskStatus); // check task status
 
@@ -63,14 +65,15 @@ module.exports = (app) => {
   router.get("/plants-list/:id", plantController.getUserPlantList); // get user's landed plant list 
   router.post("/plants-list", plantController.seedNewPlant); // add new plant to user
   router.put("/plants", plantController.harvestPlant); //harvest user's selected plant
-  // router.post("/purchase", plantController.purchaseNewPlant); //purchase new plant
-
+  router.post("/purchase", plantController.purchaseNewPlant); //purchase new plant
+  router.get('/store', plantController.getStorePlant); //get stored plant list
 
   // promotion management
   router.get("/promotion", promotionController.getPromotion); // get active promotion list
   router.get("/past-promotion", promotionController.getPastPromotion); // get past promotion list
   router.post('/promotion', promotionController.addNewPromotion); // admin adds new promotion
   router.get("/promotion-detail", promotionController.getPromotionDetail); // get promotion detail
+  router.get("/promotions", promotionController.getAllPromotions)
   // router.put("/promotion/:id", promotionController.update) // admin updates promotion (name)
   router.post("/ticket", promotionController.buyNewTicket); // buy promtion
   router.get("/ticket", promotionController.getTicket);
@@ -79,7 +82,10 @@ module.exports = (app) => {
   router.post("/spin", spinController.addnewSpin);
   router.get("/spin", spinController.getSpinList)
   router.post("/spinner-list", spinController.addNewSpinList)
+  router.get('/spin-amount', (req, res) => res.send({message: constant.SPIN_TOKEN_AMOUNT, success: true}))
 
+  // configuration
+  router.get('/ton-rate', users.getTonRate)
   //admin management
   router.put('/admin/:id', admin.update);
   router.get('/admin', admin.findOne)

@@ -109,13 +109,13 @@ exports.createTaskStatus = async (req, res) => {
 
 /**
  * 
- * @param {name, bonus, image_url} req 
+ * @param {title, bonus, link, bonus_type, type} req 
  * @param {message, success} res 
  */
 
 exports.createTask = async (req, res) => {
   //save db
-  const taskResult = await TaskModel.create({ name: req.body.name, bonus: req.body.bonus, image_url: req.file.filename, link: req.body.link, type: req.body.type })
+  const taskResult = await TaskModel.create({ title: req.body.title, bonus: req.body.bonus, link: req.body.link, type: req.body.type, bonus_type: req.body.bonus_type })
   res.send({
     message: taskResult.error || taskResult.res,
     success: taskResult.error ? false : true
