@@ -108,7 +108,7 @@ Plant.seedNewPlant = async (newPlantList) => {
 
 
     // Insert the new plant into the database
-    const [createResult] = await connection.query(createQuery, [newPlantList.user_id, newPlantList.plant_id, newPlantList.land_position, new Date().toISOString(), newPlantList.user_id, newPlantList.user_id, newPlantList.land_position]);
+    const [createResult] = await connection.query(createQuery, [newPlantList.user_id, newPlantList.plant_id, newPlantList.land_position, new Date().toISOString().slice(0, 19).replace('T', ' '), newPlantList.user_id, newPlantList.user_id, newPlantList.land_position]);
     if(createResult.affectedRows == 0) {
       return { result: "Already planted", error: true };
     }
