@@ -420,8 +420,8 @@ User.increaseToken = async (telegramId, landPosition) => {
 
     const [getPlantEarningResult] = await connection.query(getPlantEarningQuery, [telegramId, landPosition]);
     if (getPlantEarningResult.length) {
-      const query = "update tbl_user set token_amount = token_amount + ? where telegram_id = ?";
-      const [res] = await connection.query(query, [getPlantEarningResult[0].earn, telegramId]);
+      const query = "update tbl_user set token_amount = token_amount + ?, xp = xp + ? where telegram_id = ?";
+      const [res] = await connection.query(query, [getPlantEarningResult[0].earn, Math.floor(getPlantEarningResult[0].earn / 100), telegramId]);
       if (res.affectedRows) {
         return { error: false, result: "Harvested successfully" };
       } else {
