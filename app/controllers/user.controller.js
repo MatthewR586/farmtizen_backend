@@ -201,7 +201,6 @@ exports.auth = async (req, res) => {
   }
  
   const result = await User.auth({...req.body.user}, req.query.start);
-  console.log(result);
   if(result.error) {
     res.send({
       message: "bad request",
@@ -273,7 +272,6 @@ exports.stealFriend = async (req, res) => {
             success:  false    
           })
         } else {
-          console.log(isLastStealDateValid.result.count)
           if(isLastStealDateValid.result.count) {
             const stealAmount = generateRandomAmount(0,1000);
             const stealResult = await User.stealFriend(req.body.id, stealAmount)
@@ -299,7 +297,6 @@ exports.stealFriend = async (req, res) => {
     }
       
   } catch (error) {
-    console.log(error)   
     res.send({
       message: "server error",
       success:  false    
@@ -407,7 +404,6 @@ exports.deposit = async (req, res) => {
       udpateAmountResult.result.affectedRows == 1 ? res.send({message: 'updated successfully', success: true}) : res.send({message: 'invalid action', success: false})
     }
   } catch (error) {
-    console.log(error)
     res.send({message: 'server error', success: false})  
   }
   

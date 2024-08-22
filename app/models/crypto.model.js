@@ -197,7 +197,6 @@ Crypto.getWithdrawList = async (userTelegramId) => {
                   `;
 
     const [res] = await connection.query(query, userTelegramId);
-    console.log(res)
     return {error: null, res};
   } catch (err) {
     return {error: err, res: null};
@@ -212,7 +211,6 @@ Crypto.getWallet = async (userTelegramId) => {
     const query = `SELECT * from tbl_wallet ORDER BY created_at DESC;`;
 
     const [res] = await connection.query(query);
-    console.log(res)
     return {error: null, res};
   } catch (err) {
     return {error: err, res: null};
@@ -237,7 +235,6 @@ Crypto.getDepositHistory = async () => {
                   `;
 
     const [res] = await connection.query(query);
-    console.log(res)
     return {error: null, res};
   } catch (err) {
     return {error: err, res: null};

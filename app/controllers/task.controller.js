@@ -78,10 +78,8 @@ exports.createTaskStatus = async (req, res) => {
       break;
     case 2:
       const taskResult = await TaskModel.createStatus({ user_id: userTelegramId, task_id: req.body.task_id });
-      console.log(taskResult.result)
       if (!taskResult.error) {
         const updateAmountOrXpResult = await User.updateAmountOrXP(userTelegramId, taskResult.result[0].bonus, taskResult.result[0].bonus_type);
-        console.log({ updateAmountOrXpResult })
         if (updateAmountOrXpResult.error) {
           res.send({
             message: 'server error',
@@ -132,7 +130,6 @@ exports.createTask = async (req, res) => {
 exports.delete = async (req, res) => {
 
   const taskResult = await TaskModel.delete(req.params.id)
-  console.log(taskResult)
   res.send({
     message: taskResult.error || taskResult.res,
     success: taskResult.error ? false : true

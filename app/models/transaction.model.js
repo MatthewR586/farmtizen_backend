@@ -47,7 +47,6 @@ TransactionHistory.getFriendOperation = async (userId) => {
     const [res] = await connection.query(query, userId);
     return {error: null, res};
   } catch (err) {
-    console.log(err)
     return {error: err, res: null};
   } finally {
     if (connection) connection.release();

@@ -30,11 +30,9 @@ User.register = async (newUser, result) => {
     // Save the new user
     const [insertRes] = await connection.query("INSERT INTO tbl_admin SET ?", newUser);
 
-    console.log("created user: ", { id: insertRes.insertId, ...newUser });
     result(null, { id: insertRes.insertId, ...newUser });
 
   } catch (err) {
-    console.log("error: ", err);
     result(err, null);
   } finally {
     if (connection) connection.release();
@@ -59,7 +57,6 @@ User.login = async (email, password, result) => {
       const isMatch = await bcrypt.compare(password, user.password);
 
       if (isMatch) {
-        console.log("login successful: ", user);
         result(null, user);
       } else {
         // Passwords don't match
@@ -70,7 +67,6 @@ User.login = async (email, password, result) => {
       result({ kind: "not_found" }, null);
     }
   } catch (err) {
-    console.log("error: ", err);
     result(err, null);
   } finally {
     if (connection) connection.release();
@@ -82,7 +78,6 @@ User.login = async (email, password, result) => {
 
 // Login method
 User.auth = async (user, referral_id) => {
-  console.log(user)
   let connection;
   try {
     connection = await pool.getConnection();
@@ -254,11 +249,9 @@ User.updateTrxById = async (userTelegramId, approvedTrx) => {
     connection = await pool.getConnection();
     const getQuery = `SELECT trx FROM tbl_user WHERE telegram_id = ?`;
     const [res] = await connection.query(getQuery, [userTelegramId]);
-    console.log("---------------------", res.length)
     if (res.length > 0) {
       const query = `UPDATE tbl_user SET trx = ? WHERE telegram_id = ?`;
       const updatedTrx = new BN(res[0].trx).sub(new BN(approvedTrx)).toString();
-      console.log("---------------------", updatedTrx)
       const [updateRes] = await connection.query(query, [
         updatedTrx,
         userTelegramId,
@@ -372,7 +365,6 @@ User.purchasePlant = async (userTelegramId, plantId) => {
                                 ON DUPLICATE KEY UPDATE count = count + 1;
                                 `
     const [upsertResult] = await connection.query(upsertPlantToStore, [userTelegramId, plantId])                                  
-    console.log(upsertResult)
     return { error: null, result: upsertResult }
   } catch (err) {
     return { error: err, result: null }
@@ -421,6 +413,7 @@ User.increaseToken = async (telegramId, landPosition) => {
     const [getPlantEarningResult] = await connection.query(getPlantEarningQuery, [telegramId, landPosition]);
     if (getPlantEarningResult.length) {
       const query = "update tbl_user set token_amount = token_amount + ?, xp = xp + ? where telegram_id = ?";
+      console.log("1")
       const [res] = await connection.query(query, [getPlantEarningResult[0].earn, Math.floor(getPlantEarningResult[0].earn / 100), telegramId]);
       if (res.affectedRows) {
         return { error: false, result: "Harvested successfully" };
@@ -431,7 +424,6 @@ User.increaseToken = async (telegramId, landPosition) => {
       return { result: 'Plant not found', error: true };
     }
   } catch (err) {
-    console.log(err)
     return { error: true, result: 'Sever error' };
   } finally {
     if (connection) connection.release();
@@ -488,7 +480,7 @@ User.stealFriend = async (telegramId, stealAmount) => {
   try {
     connection = await pool.getConnection();
     const query = "UPDATE tbl_user SET token_amount = token_amount + ?, last_steal_date = UTC_TIMESTAMP()  WHERE telegram_id = ?";
-
+console.log("2")
     const [res] = await connection.query(query, [stealAmount, telegramId]);
 
     if (res) {
@@ -580,6 +572,7 @@ User.updateAmountOrXP = async (telegramId, amount, bonus_type) => {
     let updateQuery;
     if(bonus_type == 0) {
       updateQuery = `UPDATE tbl_user SET token_amount = token_amount + ? WHERE telegram_id = ?`
+      console.log("3")
     } else {
       updateQuery = `UPDATE tbl_user SET xp = xp + ? WHERE telegram_id = ?`
     }

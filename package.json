@@ -31,6 +31,7 @@
     "mysql2": "^3.10.3",
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
+    "tonweb": "^0.0.66",
     "tronweb": "^4.1.0",
     "twilio": "^5.2.2"
   }

@@ -17,7 +17,6 @@ exports.addnewSpin = async (req, res) => {
       success: false
     })
   } else {
-
     res.send({
       message: result.result,
       success: true
@@ -60,9 +59,9 @@ exports.addNewSpinList = async (req, res) => {
   
   const addNewSpinResult = await Spin.addNewSpinList({user_id: req.body.id, spin_id: randomSpin.id});
 
-  if (result.error) {
+  if (addNewSpinResult.error) {
     res.send({
-      message: result.result,
+      message: addNewSpinResult.result,
       success: false
     })
   } else {

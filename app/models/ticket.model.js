@@ -56,7 +56,6 @@ Ticket.addNewTicket = async (newTicket) => {
     return { result: "created successfully", error: false };
 
   } catch (err) {
-    console.log(err)
     return { result: "server error", error: true };
   } finally {
     if (connection) connection.release();

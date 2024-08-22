@@ -33,11 +33,9 @@ Plant.register = async (newUser, result) => {
     // Save the new user
     const [insertRes] = await connection.query("INSERT INTO tbl_admin SET ?", newUser);
 
-    console.log("created user: ", { id: insertRes.insertId, ...newUser });
     result(null, { id: insertRes.insertId, ...newUser });
 
   } catch (err) {
-    console.log("error: ", err);
     result(err, null);
   } finally {
     if (connection) connection.release();
@@ -71,10 +69,8 @@ Plant.getUserPlantList = async (userTelegramId) => {
 
     // Insert the new plant into the database
     const [createResult] = await connection.query(createQuery, [userTelegramId]);
-    console.log(createResult)
     return { result: createResult, error: null };
   } catch (err) {
-    console.log(err)
     return { result: null, error: err };
   } finally {
     if (connection) connection.release();
@@ -90,7 +86,6 @@ Plant.seedNewPlant = async (newPlantList) => {
 
     const stockQuantityQuery = `select count from tbl_store where user_id = ? and plant_id = ?`
     const [stockQuantityResult] = await connection.query(stockQuantityQuery, [newPlantList.user_id, newPlantList.plant_id])
-    console.log(stockQuantityResult[0]?.count)
     if(stockQuantityResult[0]?.count == undefined || stockQuantityResult[0]?.count == 0) {
       return {result: `You don't have enough stock`, error: true}
     }
@@ -122,7 +117,6 @@ Plant.seedNewPlant = async (newPlantList) => {
     return { result: "Planted Successfully", error: false };
 
   } catch (err) {
-    console.log(err)
     return { result: null, error: err };
   } finally {
     if (connection) connection.release();
